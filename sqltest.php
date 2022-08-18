@@ -1,7 +1,7 @@
 <?php
     include_once('./sql.php');
 
-    $sql = new sql();
+    $sql = new GenerateSQL();
 
     /***** test 1 *****/
     $field   = "*";

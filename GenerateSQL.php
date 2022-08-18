@@ -68,11 +68,11 @@
     {
         private static $regular_int             = "/^(-?[0-9]+)$/";
         private static $regular_join            = "/^\(.*\)$/i";
-        private static $regular_split           = "/([\w\x{2DA}!=><()-]+)[\x{2022}]?/iu";
+        private static $regular_split           = "/([.*]+)[\x{2022}]?/iu";
         private static $regular_field           = "/(count|max|min|avg|sum|abs|up{2}er|lower|length)\(([a-z]+[\w-]*)\)+/i";
-        private static $regular_where           = "/([\w()-]+)[\x{2DA}]?(!=|==?|>=?|<=?)?[\x{2DA}]?(and|or|xor)?/iu";
-        private static $regular_between         = "/([\w()-]+)[\x{2DA}]?([\w()-]+)?[\x{2DA}]?(and|or|xor)?/iu";
-        private static $regular_table_field     = "/([a-z]+[\w()-]*)(?:\.)?([a-z()-]+[()\w-]*)?/i";
+        private static $regular_where           = "/([\w()-:@&%#~`!*_=+]+)[\x{2DA}]?(!=|==?|>=?|<=?)?[\x{2DA}]?(and|or|xor)?/iu";
+        private static $regular_between         = "/([\w()-:@&%#~`!*_=+]+)[\x{2DA}]?([[\w()-:@&%#~`!*_=+]+)?[\x{2DA}]?(and|or|xor)?/iu";
+        private static $regular_table_field     = "/([a-z]+[\w()-_]*)(?:\.)?([a-z()-]+[()\w-]*)?/i";
         private static $regular_whereANDbetween = "/^(and|or|xor)$/i";
 
 
