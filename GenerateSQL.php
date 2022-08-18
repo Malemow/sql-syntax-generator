@@ -2,8 +2,6 @@
 
     declare(strict_types=1);
 
-    use Exception;
-
     /**
      * start page of sql-syntax-generator
      *
@@ -68,11 +66,14 @@
     {
         private static $regular_int             = "/^(-?[0-9]+)$/";
         private static $regular_join            = "/^\(.*\)$/i";
-        private static $regular_split           = "/([.*]+)[\x{2022}]?/iu";
-        private static $regular_field           = "/(count|max|min|avg|sum|abs|up{2}er|lower|length)\(([a-z]+[\w()-:@&%#~`!*_=+\\'\"]*\/)\)+/i";
-        private static $regular_where           = "/([\w()-:@&%#~`!*_=+\\'\"\/]+)[\x{2DA}]?(!=|==?|>=?|<=?)?[\x{2DA}]?(and|or|xor)?/iu";
-        private static $regular_between         = "/([\w()-:@&%#~`!*_=+\\'\"\/]+)[\x{2DA}]?([\w()-:@&%#~`!*_=+\\'\"\/]+)?[\x{2DA}]?(and|or|xor)?/iu";
-        private static $regular_table_field     = "/([a-z]+[\w()-_]*)(?:\.)?([a-z()-_]+[()\w-_]*)?/i";
+        private static $regular_split           = "/([a-z0-9\s`~\!@\#\$%\^&*()_\-+=|\/\[\]\{\}\"\'\:;\?\/.,><\x{2DA}]+)(?:[\x{2022}])/iu";
+        private static $regular_field           = "/(count|max|min|avg|sum|abs|up{2}er|lower|length)\(([a-z*]+[a-z0-9\s`~\!@\#\$%\^&*()_\-+=|\/\[\]\{\}\"\'\:;\?\/.,><]+)\)/i";
+        private static $regular_value           = "/^([0-9]+.*)/i";
+
+        private static $regular_where           = "/([a-z0-9\s`~\!@\#\$%\^&*()_\-+=|\/\[\]\{\}\"\'\:;\?\/.,><]+)[\x{2DA}]?(!=|=|>=?|<=?)?[\x{2DA}]?(and|or|xor)?/iu";
+        private static $regular_between         = "/([a-z0-9\s`~\!@\#\$%\^&*()_\-+=|\/\[\]\{\}\"\'\:;\?\/.,><]+)+[\x{2DA}]?([a-z0-9\s`~\!@\#\$%\^&*()_\-+=|\/\[\]\{\}\"\'\:;\?\/.,><]+)?[\x{2DA}]?(and|or|xor)?/iu";
+        private static $regular_table_field     = "/(\(?[a-z]+[a-z0-9\-_]+\)?)\.?([a-z]+\(?[a-z0-9\-_]*\)?)?/i";
+
         private static $regular_whereANDbetween = "/^(and|or|xor)$/i";
 
 
@@ -87,16 +88,16 @@
          * if required aliases are defined in "key", if there is only one piece of data, you can directly write a string in
          * @param  array $where
          * Use unicode U+2DA symbols to cut strings, three in groups.
-         * ---------------------------------------
-         * |regular_where  : groups              |
-         * ---------------------------------------
-         * | 1 : can be any word                 |
-         * | 2 :can only be =, !=, >, < , >=, <= |
-         * | 3 : can only be and, or, xor        |
-         * ---------------------------------------
+         * ----------------------------------------
+         * |regular_where  : groups               |
+         * ----------------------------------------
+         * | 1 : can be any word                  |
+         * | 2 : can only be =, !=, >, < , >=, <= |
+         * | 3 : can only be and, or, xor         |
+         * ----------------------------------------
          * If multiple conditional judgments are required, with a multi-dimensional array, the key is the conditional judgment,
          *
-         * ['and' => ['time' => '10˚20˚or•50˚60']] => WHERE ( `time` = 'qqq' OR `uuid` != 123 ) AND
+         * ['and' => ['time' => '10˚20˚or•50˚60'•]] => WHERE ( `time` = 'qqq' OR `uuid` != 123 ) AND
          * @param  array $between
          * Use unicode U+2DA symbols to cut strings, three in groups.
          * ---------------------------------------
@@ -148,19 +149,6 @@
                 }
             }
 
-
-            // get table
-            foreach ($tables as $key => $value) {
-                if(is_string($key)){
-                    $table =(!preg_match(self::$regular_join, $value))? "`$value` AS `$key`": "$value AS `$key`";
-                }else {
-                    $table = (!preg_match(self::$regular_join, $value))? "`$value`": "$value";
-                }
-                $table_tmp[] = $table;
-            }
-            $table = implode(", ", $table_tmp);
-
-
             // get fields
             foreach ($fields as $key => $field) {
                 self::get_field($field);
@@ -170,20 +158,36 @@
             }
             $field = implode(", ", $fields_tmp);
 
+            // get table
+            foreach ($tables as $key => $value) {
+                if(is_string($key)){
+                    $table = (preg_match(self::$regular_join, $value))? "$value AS `$key`": "`$value` AS `$key`";
+                    var_dump($table);
+                }else {
+                    $table = "`$value`";
+                }
+                $table_tmp[] = $table;
+            }
+            $table = implode(", ", $table_tmp);
+
+
             //get where
             if(!empty($where)){
-                $data_tmp         = [];
+                $data_tmp = [];
                 $implode_tmp = "";
                 foreach ($where as $key => $data) {
                     preg_match(self::$regular_split, $key, $keys);
-                    $key = array_pop($keys);
+                    $key =(empty($keys))? $key: array_pop($keys);
 
                     if (is_array($data)) {
-                        $key = (!preg_match(self::$regular_int, $key))? strtoupper($key): "";
+                        $key = (!preg_match(self::$regular_int, $key) && preg_match(self::$regular_whereANDbetween, $key))? strtoupper($key): "";
+
                         foreach ($data as $index => $obj) {
                             preg_match_all(self::$regular_split, $obj, $where, PREG_SET_ORDER);
+                            (empty($where))? $where[0][] = $obj: "";
+
                             foreach ($where as $value) {
-                                $string = array_pop($value);
+                                $string      = array_pop($value);
                                 $data_tmp[]  = self::get_where($index, $string);
                             }
                         }
@@ -191,6 +195,8 @@
                         $where_tmp[] =(!preg_match(self::$regular_int, $key))? "($implode_tmp) $key": "($implode_tmp)";
                     }else {
                         preg_match_all(self::$regular_split, $data, $where, PREG_SET_ORDER);
+                        (empty($where))? $where[0][] = $data: "";
+
                         foreach ($where as $data) {
                             $data = array_pop($data);
                             $where_tmp[] = self::get_where($key, $data);
@@ -207,9 +213,11 @@
                 $tmp = [];
                 foreach ($between as $key => $data) {
                     preg_match(self::$regular_split, $key, $keys);
-                    $key = array_pop($keys);
+                    $key =(empty($keys))? $key: array_pop($keys);
 
                     preg_match_all(self::$regular_split, $data, $between, PREG_SET_ORDER);
+                    (empty($between))? $between[0][] = $data: "";
+
                     foreach ($between as $data) {
                         $data = array_pop($data);
                         $between_tmp[] = self::get_between($key, $data);
@@ -319,20 +327,42 @@
          * Convert the field as a regular expression to what the sql syntax should look like
          *
          * @param string|int $field
-         * @param bool       $mark if ture mark = '' if not mark = ``
+         * @param bool       $value if ture mark = '' if not mark = ``
          *
          * @return void       Use memory changes, more manageable
          */
-        private static function get_field(string|int &$field, bool $mark = false): void
+        private static function get_field(string|int &$field, bool $value = false): void
         {
             if(!preg_match(self::$regular_int, $field) && $field !== "*"){
                 preg_match(self::$regular_table_field, $field, $data);
+                array_shift($data);
 
-                $table_field = (count($data) == 3)? $data['1']: "";
-                $field = (count($data) == 2)? $data[1]: $data[2];
+                $field       = array_pop($data);
+                $table_field = (empty($data))? array_pop($data): "";
+
+
                 $field = preg_replace(self::$regular_field, "\${1}(`\${2}`)",$field, 1, $match);
-                $field = (boolval($match))? $field: (($mark)? "'{$field}'": "`{$field}`");
+
+                $field = (boolval($match))? $field: (($value)? "'{$field}'": "`{$field}`");
                 $field = (empty($table_field))? $field: "`{$table_field}`.{$field}";
+            }
+        }
+
+
+        private static function get_value(string|int &$field): void
+        {
+            if(!preg_match(self::$regular_int, $field) && $field !== "*"){
+                if (preg_match(self::$regular_value, $field)) {
+                    $field = "'$field'";
+                }else{
+                    preg_match(self::$regular_table_field, $field, $data);
+                    $field       = (empty($data))? $field : array_pop($data);
+                    $table_field = array_pop($data);
+
+                    $field = preg_replace(self::$regular_field, "\${1}(`\${2}`)",$field, 1, $match);
+                    $field = (boolval($match))? $field: "`{$field}`";
+                    $field = (empty($table_field))? $field: "`{$table_field}`.{$field}";
+                }
             }
         }
 
@@ -353,9 +383,10 @@
             $Length = count($data);
 
             self::get_field($field);
-            self::get_field($data[1], true);
+            self::get_value($data[1]);
 
-            (isset($data[3]))? $data[3] = strtoupper($data[3]):"";
+
+            (isset($data[3]))? $data[3] = strtoupper($data[3]): "";
 
             switch ($Length) {
                 case 1:
@@ -398,8 +429,8 @@
             $Length = count($data);
 
             self::get_field($field);
-            self::get_field($data[1], true);
-            self::get_field($data[2], true);
+            self::get_value($data[1]);
+            self::get_value($data[2]);
 
             (isset($data[3]))? $data[3] = strtoupper($data[3]):"";
             switch ($Length) {
