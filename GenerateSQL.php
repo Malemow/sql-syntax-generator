@@ -55,12 +55,12 @@
      * @global string $regular_join
      * Verify that the table field is in join format. Use ^(.*)$ to verify
      *----------------------------------------------
-     * @category  PHP
-     * @author    Nick.Lin <nick.8716280@gmail.com>
-     * @copyright 2022 sql
-     * @example   location ./sqltest.php
-     * @version   1.0
-     */
+    * @category  PHP
+    * @author    Nick.Lin <nick.8716280@gmail.com>
+    * @copyright 2022 sql
+    * @example   location ./sqltest.php
+    * @version   1.0
+    */
 
     class GenerateSQL
     {
@@ -72,7 +72,7 @@
 
         private static $regular_where           = "/([a-z0-9\s`~\!@\#\$%\^&*()_\-+=|\/\[\]\{\}\"\'\:;\?\/.,><]+)[\x{2DA}]?(!=|=|>=?|<=?)?[\x{2DA}]?(and|or|xor)?/iu";
         private static $regular_between         = "/([a-z0-9\s`~\!@\#\$%\^&*()_\-+=|\/\[\]\{\}\"\'\:;\?\/.,><]+)+[\x{2DA}]?([a-z0-9\s`~\!@\#\$%\^&*()_\-+=|\/\[\]\{\}\"\'\:;\?\/.,><]+)?[\x{2DA}]?(and|or|xor)?/iu";
-        private static $regular_table_field     = "/(\(?[a-z]+[a-z0-9\-_]+\)?)\.?([a-z]+\(?[a-z0-9\-_]*\)?)?/i";
+        private static $regular_table_field     = "/(\(?[a-z]+[a-z0-9\-_()]+\)?)\.?([a-z]+\(?[a-z0-9\-_]*\)?)?/i";
 
         private static $regular_whereANDbetween = "/^(and|or|xor)$/i";
 
@@ -162,7 +162,6 @@
             foreach ($tables as $key => $value) {
                 if(is_string($key)){
                     $table = (preg_match(self::$regular_join, $value))? "$value AS `$key`": "`$value` AS `$key`";
-                    var_dump($table);
                 }else {
                     $table = "`$value`";
                 }
@@ -183,6 +182,7 @@
                         $key = (!preg_match(self::$regular_int, $key) && preg_match(self::$regular_whereANDbetween, $key))? strtoupper($key): "";
 
                         foreach ($data as $index => $obj) {
+                            $obj = (is_int($obj))? (string)$obj: $obj;
                             preg_match_all(self::$regular_split, $obj, $where, PREG_SET_ORDER);
                             (empty($where))? $where[0][] = $obj: "";
 
@@ -194,6 +194,7 @@
                         $implode_tmp = implode(" ", $data_tmp);
                         $where_tmp[] =(!preg_match(self::$regular_int, $key))? "($implode_tmp) $key": "($implode_tmp)";
                     }else {
+                        $data = (is_int($data))? (string)$data: $data;
                         preg_match_all(self::$regular_split, $data, $where, PREG_SET_ORDER);
                         (empty($where))? $where[0][] = $data: "";
 
@@ -215,6 +216,7 @@
                     preg_match(self::$regular_split, $key, $keys);
                     $key =(empty($keys))? $key: array_pop($keys);
 
+                    $data = (is_int($data))? (string)$data: $data;
                     preg_match_all(self::$regular_split, $data, $between, PREG_SET_ORDER);
                     (empty($between))? $between[0][] = $data: "";
 
@@ -356,11 +358,13 @@
                     $field = "'$field'";
                 }else{
                     preg_match(self::$regular_table_field, $field, $data);
-                    $field       = (empty($data))? $field : array_pop($data);
+                    array_shift($data);
+
+                    $field       = array_pop($data);
                     $table_field = array_pop($data);
 
                     $field = preg_replace(self::$regular_field, "\${1}(`\${2}`)",$field, 1, $match);
-                    $field = (boolval($match))? $field: "`{$field}`";
+                    $field = (boolval($match))? $field: "'{$field}'";
                     $field = (empty($table_field))? $field: "`{$table_field}`.{$field}";
                 }
             }

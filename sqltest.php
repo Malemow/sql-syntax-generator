@@ -4,13 +4,13 @@
     $sql = new GenerateSQL();
 
     /***** test 1 *****/
-    $field   = "qwdqwd.count(qwdqw)";
+    $field   = ['uuid' => 'uuid_j', 'dtime', 'status', 'method', 'feature'];
     $table   = ["GG" => "rpz", "GG•1" => "fasfasfs"];
-    $where   = ['or' => ['ipv4' => "192.168.0.1"]];
+    $where   = ['status' => "0"];
     $between = ["time" => "10˚20˚or"];
     $groupBy = "time";
     $orderBy = "time";
     $limit   = "2";
 
-    ($sql::get_sql(between:$between));
+    echo $sql::get_sql(where:$where);
 ?>
