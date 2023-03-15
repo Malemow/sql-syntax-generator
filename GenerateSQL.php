@@ -1,5 +1,4 @@
 <?php
-
     declare(strict_types=1);
 
     /**
@@ -18,7 +17,7 @@
     /**
      * Complete the patchwork sql syntax.
      *
-     * [Function 1] get_sql( array|string $fields = [], array|string $tables = [], array $where = [], array $between = [], array|string $orders = [] , array|string $groups = [], array|string $limits = []): string.
+     * [Function 1] get_sql( array|string $fields = [], array|string $tables = [], array $where = [], array $between = [], array|string $orders = [] , array|string $groups = [], array|string $limits = []): string
      *
      * Unicode U+2022, Mac <Alt-k>, Win `+u2022
      * Unicdoe U+2DA , Mac <Alt-8>, win `+u2DA
@@ -64,8 +63,8 @@
 
     class GenerateSQL
     {
-        private static $_regular_domain = "/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*$/";
-        private static $_regular_fqdn   = "/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(\.[A-Za-z0-9-]{1,63})*(\.[A-Za-z]{2,})\.$/";
+        private static $_regular_domain = "/^(?:[-A-Za-z0-9]{0,63}+\.)+[-A-Za-z0-9]{1,63}$/";
+        private static $_regular_fqdn   = "/^(?:[-A-Za-z0-9]{0,63}+\.)+[-A-Za-z0-9]{1,63}+\.$/";
 
         private static $_regular_int             = "/^(-?[0-9]+)$/";
         private static $_regular_join            = "/^\(.*\)$/i";
@@ -669,3 +668,4 @@
         }
     }
 ?>
+
